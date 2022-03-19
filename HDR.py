@@ -2,6 +2,8 @@ import numpy as np
 import cv2
 import glob
 
+
+# convert input image to MTB image
 class MyImage:
     def __init__(self, src_img):
         self.src_img = src_img
@@ -13,25 +15,21 @@ class MyImage:
         self.threshold_i = 15
     
     def grayscale(self):
-        # convert RGB to Grayscale
-        for i in range(self.src_img.shape[0]):       #height
-            for j in range(self.src_img.shape[1]):   #width
-                self.gray_img[i][j] = int((self.src_img[i][j][0]*19 + self.src_img[i][j][1]*183 + self.src_img[i][j][2]*54) / 256)
-                self.med_i = np.median(self.gray_img)
+        self.src_img = self.src_img.astype(np.int)
+        self.gray_img = (self.src_img[:,:,0]*19/256 + self.src_img[:,:,1]*183/256 + self.src_img[:,:,2]*54/256)
+        self.med_i = np.median(self.gray_img)
 
     def mtb(self):
-        # convert to MTB
-        for i in range(self.src_img.shape[0]):       #height
-            for j in range(self.src_img.shape[1]):   #width
-                self.mtb_img[i][j] = ({True:255,False:0}[self.gray_img[i][j] > self.med_i])
-
+        # # convert to MTB
+        self.mtb_img = np.where(self.gray_img > self.med_i, 255, 0)
+    
     def mask(self):
-        # exclusion map
-        for i in range(self.src_img.shape[0]):       #height
-            for j in range(self.src_img.shape[1]):   #width
-                self.mask_img[i][j] = ({True:0,False:255}[self.gray_img[i][j] < self.med_i + self.threshold_i and
-                 self.gray_img[i][j] > self.med_i - self.threshold_i])
-
+        # # exclusion map
+        upper_bound = self.med_i + self.threshold_i
+        lower_bound = self.med_i - self.threshold_i
+        self.mask_img[self.gray_img < lower_bound] = 255
+        self.mask_img[self.gray_img > upper_bound] = 255
+     
     def bind_mtb_mask(self):
         # bind mask_img and mtb_img
         self.denoise_img = np.bitwise_and(self.mtb_img, self.mask_img)
@@ -41,6 +39,47 @@ class MyImage:
         self.mtb()
         self.mask()
         self.bind_mtb_mask()
+    
+
+# class MyImage:
+#     def __init__(self, src_img):
+#         self.src_img = src_img
+#         self.gray_img = np.zeros((self.src_img.shape[0],self.src_img.shape[1]), dtype=int)
+#         self.mtb_img  = np.zeros((self.src_img.shape[0],self.src_img.shape[1]), dtype=int)
+#         self.mask_img = np.zeros((self.src_img.shape[0],self.src_img.shape[1]), dtype=int)
+#         self.denoise_img = np.zeros((self.src_img.shape[0],self.src_img.shape[1]), dtype=int)
+#         self.med_i = 0
+#         self.threshold_i = 15
+    
+#     def grayscale(self):
+#         # convert RGB to Grayscale
+#         for i in range(self.src_img.shape[0]):       #height
+#             for j in range(self.src_img.shape[1]):   #width
+#                 self.gray_img[i][j] = int((self.src_img[i][j][0]*19 + self.src_img[i][j][1]*183 + self.src_img[i][j][2]*54) / 256)
+#                 self.med_i = np.median(self.gray_img)
+
+#     def mtb(self):
+#         # convert to MTB
+#         for i in range(self.src_img.shape[0]):       #height
+#             for j in range(self.src_img.shape[1]):   #width
+#                 self.mtb_img[i][j] = ({True:255,False:0}[self.gray_img[i][j] > self.med_i])
+
+#     def mask(self):
+#         # exclusion map
+#         for i in range(self.src_img.shape[0]):       #height
+#             for j in range(self.src_img.shape[1]):   #width
+#                 self.mask_img[i][j] = ({True:0,False:255}[self.gray_img[i][j] < self.med_i + self.threshold_i and
+#                  self.gray_img[i][j] > self.med_i - self.threshold_i])
+
+#     def bind_mtb_mask(self):
+#         # bind mask_img and mtb_img
+#         self.denoise_img = np.bitwise_and(self.mtb_img, self.mask_img)
+
+#     def convert_image(self):
+#         self.grayscale()
+#         self.mtb()
+#         self.mask()
+#         self.bind_mtb_mask()
 
 def main():
     # Read file
